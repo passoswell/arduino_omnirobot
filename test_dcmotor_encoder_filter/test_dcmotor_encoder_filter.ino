@@ -1,5 +1,5 @@
-#include <stdint.h>
 #include <Wire.h>
+#include "tracking_loop_filter.h"
 #include "rotary_encoder.h"
 #include "dcmotor.h"
 
@@ -50,6 +50,9 @@ DcMotor motor2(Motor2PWM, Motor2Dir);
 DcMotor motor3(Motor3PWM, Motor3Dir);
 
 
+TrackingLoopFilterInt_t EncoderFilter;
+
+
 void setup() {
   Serial.begin(115200);
   Serial.println("Test_Rotary_Encoders_Motors");
@@ -58,7 +61,9 @@ void setup() {
   pinMode(SLPpin2,OUTPUT);
   digitalWrite(SLPpin2, HIGH);
   pinMode(LedPin,OUTPUT);
-  digitalWrite(LedPin, HIGH);  
+  digitalWrite(LedPin, HIGH);
+
+  TrackingLoopFilterInt_Init(&EncoderFilter, 40.0, 900.0, (float) EncoderInterval / 1000.0);
 
   /*
    * The code below configures interruption on ATMEGA328p gpio pins,
@@ -94,11 +99,7 @@ void loop() {
 
   static unsigned long previousMillis = 0, currentMillis;
   static long pulses;
-  static float dtheta,auxfloat,RPM;
-  static float kp = 40.0, ki = 900.0;
-  static int64_t tpulses = 0, fpulses = 0;
-  static float velocidadeint = 0.0, velocidade = 0.0; 
-  static int64_t err=0, cumerr=0;
+  static int64_t tpulses = 0;
   static unsigned int printCounter = 0;
   float dt = 0.0;
 
@@ -119,31 +120,8 @@ void loop() {
     /* Accumulating encoder pulses over time */
     tpulses += pulses;
 
-    /** Implementing a tracking loop filter **/
-    /** https://www.embeddedrelated.com/showarticle/530.php **/
-
-    /* Difference between read and filtered accumulated encoder count */
-    err = tpulses - fpulses;
-    /* Accumulating the difference */
-    if(pulses == 0 && err == 0){
-      cumerr = 0;
-    }else{
-      cumerr += err;
-    }
-    /* Computing pulses per second using the accumulator (integral)*/
-    velocidadeint = cumerr;
-    velocidadeint *= 900.0 * dt;
-    /* Computing pulses per second (+ proportional) */
-    velocidade = err;
-    velocidade += 40.0 * velocidade + velocidadeint;
-    /* Computing filtered accumulated encoder count */
-    fpulses += velocidade * dt;
-    /* Wheel speed in RPM */
-    RPM = velocidade * PULSE2RAD * RAD2RPM;
+    TrackingLoopFilterInt_Run(&EncoderFilter, tpulses);
     
-//    dtheta = (float) pulses * PULSE2RAD;
-//    auxfloat = (float) EncoderInterval / 1000.0;
-//    RPM = dtheta / dt;
 
     printCounter++;
     if(printCounter >= (500 / EncoderInterval))
@@ -153,25 +131,19 @@ void loop() {
       /*Encoder counter */
       Serial.print(pulses);
       Serial.print("   ");
-      Serial.print((int32_t)err);
+      Serial.print((int32_t)EncoderFilter.Error);
       Serial.print("   ");
-      Serial.print((int32_t)cumerr);
+      Serial.print((int32_t)EncoderFilter.AccError);
       Serial.print("   ");
       /* Unfiltered wheel speed in RPM */
       Serial.print(((float)pulses * PULSE2RAD * RAD2RPM) / dt);
-      Serial.print("                       ");   
-      //Serial.print(RPM *RAD2RPM);
-      /*Wheel speed in RPM filter output 1 */
-      Serial.print(velocidade * PULSE2RAD * RAD2RPM);
-      Serial.print("   ");
-      /*Wheel speed in RPM  filter output 2 */
-      Serial.print(velocidadeint * PULSE2RAD * RAD2RPM);
+      Serial.print("                       ");
       Serial.print("   ");
       /* Pulses per second filter output 1 */
-      Serial.print(velocidade);
+      Serial.print(EncoderFilter.DiffOutput * PULSE2RAD * RAD2RPM);
       Serial.print("   ");
       /* Pulses per second filter output 2 */
-      Serial.print(velocidadeint);
+      Serial.print(EncoderFilter.DiffOutAcc * PULSE2RAD * RAD2RPM);
       Serial.print("   ");
       Serial.println();
     }
