@@ -25,6 +25,9 @@ public:
 
   // ----- Constructor -----
   RotaryEncoder(int encA, int encB);
+  RotaryEncoder(void){};
+
+  void Begin(int encA, int encB);
   
   // retrieve the current position
   long  getPosition();

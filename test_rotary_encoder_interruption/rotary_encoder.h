@@ -25,6 +25,9 @@ public:
 
   // ----- Constructor -----
   RotaryEncoder(int encA, int encB);
+  RotaryEncoder(void){};
+
+  void Begin(int encA, int encB);
   
   // retrieve the current position
   long  getPosition();
@@ -37,6 +40,7 @@ public:
 
   // retrieve number of pulses detected since last time
   long  getPulses();
+  long  readPulses();
 
   // call this function every some milliseconds or by using an interrupt for handling state changes of the rotary encoder.
   void tick(void);

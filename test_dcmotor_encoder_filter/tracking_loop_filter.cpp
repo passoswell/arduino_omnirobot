@@ -13,7 +13,7 @@ void TrackingLoopFilter_Init(TrackingLoopFilter_t *Parameters, float Kp, float K
 
 
 
-float TrackingLoopFilter_Run(TrackingLoopFilter_t *Parameters, float Input)
+float TrackingLoopFilter_Compute(TrackingLoopFilter_t *Parameters, float Input)
 {
   /* Difference between read and filtered accumulated encoder count */
   Parameters->Error = Input - Parameters->Output;
@@ -50,7 +50,7 @@ void TrackingLoopFilterInt_Init(TrackingLoopFilterInt_t *Parameters, float Kp, f
 
 
 
-float TrackingLoopFilterInt_Run(TrackingLoopFilterInt_t *Parameters, int64_t Input)
+float TrackingLoopFilterInt_Compute(TrackingLoopFilterInt_t *Parameters, int64_t Input)
 {
   /* Difference between read and filtered accumulated encoder count */
   Parameters->Error = Input - Parameters->Output;

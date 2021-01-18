@@ -40,6 +40,26 @@ RotaryEncoder::RotaryEncoder(int encA, int encB) {
   _positionPrev2 = 0;
 } // RotaryEncoder()
 
+// ----- Initialization and Default Values -----
+
+void RotaryEncoder::Begin(int encA, int encB) {
+  
+  // Remember Hardware Setup
+  _encA = encA;
+  _encB = encB;
+  
+  // Setup the input pins and turn on pullup resistor
+  pinMode(encA, INPUT_PULLUP);
+  pinMode(encB, INPUT_PULLUP);
+
+  // when not started in motion, the current state of the encoder should be 3
+  _oldState = 3;
+
+  // start with position 0;
+  _position = 0;
+  _positionPrev = 0;
+  _positionPrev2 = 0;
+} // RotaryEncoder()
 
 long  RotaryEncoder::getPosition() {
   return _position;
@@ -58,6 +78,13 @@ long  RotaryEncoder::getPulses() {
   _positionPrev2 = _position;
   return pulses;
 } // getPosition()
+
+
+long  RotaryEncoder::readPulses() {
+  long pulses =  _position;
+  _position = 0;
+  return pulses;
+} // readPulses()
 
 
 RotaryEncoder::Direction RotaryEncoder::getDirection() {

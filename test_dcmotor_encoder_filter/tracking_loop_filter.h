@@ -54,10 +54,10 @@ typedef struct
 
 
 void TrackingLoopFilter_Init(TrackingLoopFilter_t *Parameters, float Kp, float Ki, float Dt);
-float TrackingLoopFilter_Run(TrackingLoopFilter_t *Parameters, float Input);
+float TrackingLoopFilter_Compute(TrackingLoopFilter_t *Parameters, float Input);
 
 void TrackingLoopFilterInt_Init(TrackingLoopFilterInt_t *Parameters, float Kp, float Ki, float Dt);
-float TrackingLoopFilterInt_Run(TrackingLoopFilterInt_t *Parameters, int64_t Input);
+float TrackingLoopFilterInt_Compute(TrackingLoopFilterInt_t *Parameters, int64_t Input);
 
 
 

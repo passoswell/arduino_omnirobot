@@ -120,7 +120,7 @@ void loop() {
     /* Accumulating encoder pulses over time */
     tpulses += pulses;
 
-    TrackingLoopFilterInt_Run(&EncoderFilter, tpulses);
+    TrackingLoopFilterInt_Compute(&EncoderFilter, tpulses);
     
 
     printCounter++;
@@ -149,14 +149,14 @@ void loop() {
     }
 
     
-    motor1.set(100);//turn clockwise with PWM = 100
+    motor1.Set(100);//turn clockwise with PWM = 100
     pulses = encoder2.getPulses();
     //Serial.print(pulses);
     //Serial.print(" ");
-    motor2.set(0);
+    motor2.Set(0);
     pulses = encoder3.getPulses();
     //Serial.println(pulses);
-    motor3.set(0);
+    motor3.Set(0);
   }//if
   
   /* Blinking a LED */

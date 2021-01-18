@@ -13,12 +13,15 @@ public:
   // ----- Constructor -----
   DcMotor(int pinPWM, int pinDir);		//Constructor
   DcMotor(int pinPWM, int pinDir, int nbits);  //also configures max PWM value
+  DcMotor(void){};
+
+  void Begin(int pinPWM, int pinDir);
   
   // retrieve the current position
-  void  set(unsigned int PWMvalue, int _direction);	//Sets PWM value directly
-  void  set(int PWMvalue, int _direction);
-  void  set(float PWMvalue);
-  //void  set(float dutycycle, int direction);//Uses duty cycle to compute PWM value
+  void  Set(unsigned int PWMvalue, int _direction);	//Sets PWM value directly
+  void  Set(int PWMvalue, int _direction);
+  void  Set(float PWMvalue);
+  //void  Set(float dutycycle, int direction);//Uses duty cycle to compute PWM value
   
   
 private:

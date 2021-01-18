@@ -91,16 +91,16 @@ void loop() {
     pulses = encoder1.getPulses();
     Serial.print(pulses);
     Serial.print(" ");    
-    motor1.set(100);//turn clockwise with PWM = 100
+    motor1.Set(100);//turn clockwise with PWM = 100
     
     pulses = encoder2.getPulses();
     Serial.print(pulses);
     Serial.print(" ");    
-    motor2.set(-100);
+    motor2.Set(-100);
     
     pulses = encoder3.getPulses();
     Serial.println(pulses);
-    motor3.set(200);
+    motor3.Set(200);
     
   }//if
   

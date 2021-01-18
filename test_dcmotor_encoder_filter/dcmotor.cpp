@@ -25,20 +25,29 @@ DcMotor::DcMotor(int pinPWM, int pinDir, int nbits){
 }
 
 
-void  DcMotor::set(unsigned int PWMvalue, int _direction){
+void DcMotor::Begin(int pinPWM, int pinDir){
+  _pinPWM = pinPWM;
+  _pinDir = pinDir;
+  pinMode( _pinPWM, OUTPUT );
+  digitalWrite(_pinPWM, LOW);
+  pinMode(_pinDir,OUTPUT);
+  digitalWrite(_pinDir, HIGH);
+}
+
+void  DcMotor::Set(unsigned int PWMvalue, int _direction){
 	analogWrite(_pinPWM,PWMvalue&_PWM_MaxValue);
 	if( _direction&&1 ) digitalWrite(_pinDir, HIGH);
 	else digitalWrite(_pinDir, LOW);
 }
 
-void  DcMotor::set(int PWMvalue, int _direction){
+void  DcMotor::Set(int PWMvalue, int _direction){
   if(PWMvalue>0) analogWrite(_pinPWM,PWMvalue&_PWM_MaxValue);
   else analogWrite(_pinPWM,(0-PWMvalue)&_PWM_MaxValue);
   if( _direction&&1 ) digitalWrite(_pinDir, HIGH);
   else digitalWrite(_pinDir, LOW);
 }
 
-void  DcMotor::set(float PWMvalue){
+void  DcMotor::Set(float PWMvalue){
   int aux = (int)abs(PWMvalue);
   analogWrite(_pinPWM,aux&_PWM_MaxValue);
   if( PWMvalue >= 0.0 ) digitalWrite(_pinDir, LOW);
