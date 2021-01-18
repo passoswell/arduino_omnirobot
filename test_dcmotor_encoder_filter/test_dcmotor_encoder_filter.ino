@@ -1,3 +1,4 @@
+#include <stdint.h>
 #include <Wire.h>
 #include "rotary_encoder.h"
 #include "dcmotor.h"
@@ -92,12 +93,12 @@ ISR(PCINT1_vect) {
 void loop() {
 
   static unsigned long previousMillis = 0, currentMillis;
-  static int pulses;
+  static long pulses;
   static float dtheta,auxfloat,RPM;
   static float kp = 40.0, ki = 900.0;
-  static float tpulses = 0.0, fpulses = 0.0;
+  static int64_t tpulses = 0, fpulses = 0;
   static float velocidadeint = 0.0, velocidade = 0.0; 
-  static float err=0.0, cumerr=0.0;
+  static int64_t err=0, cumerr=0;
   static unsigned int printCounter = 0;
   float dt = 0.0;
 
@@ -116,7 +117,7 @@ void loop() {
     pulses = encoder1.readPulses();
 
     /* Accumulating encoder pulses over time */
-    tpulses += (float) pulses;
+    tpulses += pulses;
 
     /** Implementing a tracking loop filter **/
     /** https://www.embeddedrelated.com/showarticle/530.php **/
@@ -124,11 +125,17 @@ void loop() {
     /* Difference between read and filtered accumulated encoder count */
     err = tpulses - fpulses;
     /* Accumulating the difference */
-    cumerr += err;
+    if(pulses == 0 && err == 0){
+      cumerr = 0;
+    }else{
+      cumerr += err;
+    }
     /* Computing pulses per second using the accumulator (integral)*/
-    velocidadeint = 900.0 * cumerr  *dt;
+    velocidadeint = cumerr;
+    velocidadeint *= 900.0 * dt;
     /* Computing pulses per second (+ proportional) */
-    velocidade = 40.0*err + velocidadeint;
+    velocidade = err;
+    velocidade += 40.0 * velocidade + velocidadeint;
     /* Computing filtered accumulated encoder count */
     fpulses += velocidade * dt;
     /* Wheel speed in RPM */
@@ -146,12 +153,13 @@ void loop() {
       /*Encoder counter */
       Serial.print(pulses);
       Serial.print("   ");
+      Serial.print((int32_t)err);
+      Serial.print("   ");
+      Serial.print((int32_t)cumerr);
+      Serial.print("   ");
       /* Unfiltered wheel speed in RPM */
       Serial.print(((float)pulses * PULSE2RAD * RAD2RPM) / dt);
-      Serial.print("   ");
-      /*Filtered encoder counter */
-      Serial.print(fpulses);
-      Serial.print("   ");      
+      Serial.print("                       ");   
       //Serial.print(RPM *RAD2RPM);
       /*Wheel speed in RPM filter output 1 */
       Serial.print(velocidade * PULSE2RAD * RAD2RPM);
@@ -160,10 +168,10 @@ void loop() {
       Serial.print(velocidadeint * PULSE2RAD * RAD2RPM);
       Serial.print("   ");
       /* Pulses per second filter output 1 */
-      Serial.print(velocidadeint);
+      Serial.print(velocidade);
       Serial.print("   ");
       /* Pulses per second filter output 2 */
-      Serial.print(velocidade);
+      Serial.print(velocidadeint);
       Serial.print("   ");
       Serial.println();
     }
