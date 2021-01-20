@@ -307,36 +307,25 @@ void loop() {
      * invRteta = Rteta'
      * teta = Poseb[2];
      */
-//    costeta = cosf(Poseb[2]);
-//    sinteta = sinf(Poseb[2]);
-//    invRteta[0] = costeta;
-//    invRteta[1] = -sinteta;
-//    invRteta[3] = +sinteta;
-//    invRteta[4] = costeta;
-//    scaleMatrix( MotorsSpeedMeasured, RobotSpeedMeasured, N_MOTORS, 1, (float)RPM2RAD );
-//    multiplyMatrix( MCI, RobotSpeedMeasured, 3, N_MOTORS, 1, auxVector );
-//    multiplyMatrix( invRteta, auxVector, 3, 3, 1, RobotSpeedMeasured );    
-//    scaleMatrix( RobotSpeedMeasured, auxVector, 3, 1, PoseInterval*0.001 );
-//    addMatrix( Poseb, auxVector, 3, 1, Poseb );
-//
-//    /* Limiting orientation angle between 0 and 2 * PI */
-//    auxf  = Poseb[2] * 0.5 * M_1_PI;
-//    aux32 = auxf;
-//    auxf -= aux32;
-//    auxf *= 2 * M_PI;
-//    Poseb[2] = auxf;
+    costeta = cosf(Poseb[2]);
+    sinteta = sinf(Poseb[2]);
+    invRteta[0] = costeta;
+    invRteta[1] = -sinteta;
+    invRteta[3] = +sinteta;
+    invRteta[4] = costeta;
+    transposeMatrix( invRteta, 3, 3, Rteta ); 
+    scaleMatrix( MotorsSpeedMeasured, RobotSpeedMeasured, 3, 1, (float)RPM2RAD );
+    multiplyMatrix( MCI, RobotSpeedMeasured, 3, 3, 1, auxVector );
+    multiplyMatrix( invRteta, auxVector, 3, 3, 1, RobotSpeedMeasured );    
+    scaleMatrix( RobotSpeedMeasured, auxVector, 3, 1, PoseInterval*0.001 );
+    addMatrix( Poseb, auxVector, 3, 1, Poseb );
 
-//    RobotSpeedSetpoint[0] = 0.1;
-//    RobotSpeedSetpoint[1] = 0.0;
-//    RobotSpeedSetpoint[2] = 0.0;
-//    RobotSpeedSetpoint[2] *= RPM2RAD;
-//    //Computing motor speeds from desired base speed
-//    transposeMatrix( invRteta, 3, 3, Rteta );
-//    multiplyMatrix( Rteta, RobotSpeedSetpoint, 3, 3, 1, auxVector );
-//    multiplyMatrix( MCD, auxVector, 3, 3, 1, MotorsSpeedSetpoint );
-//    scaleMatrix( MotorsSpeedSetpoint, MotorsSpeedSetpoint, 3, 1, (float)RAD2RPM );
-
- 
+    /* Limiting orientation angle between 0 and 2 * PI */
+    auxf  = Poseb[2] * 0.5 * M_1_PI;
+    aux32 = auxf;
+    auxf -= aux32;
+    auxf *= 2 * M_PI;
+    Poseb[2] = auxf;
     
   }
 
@@ -368,32 +357,33 @@ void PRINTserial(void)
 
       if(isPrintReadableMode == false)
       {
-        if((isPrintSlowMode == false) || (isPrintSlowMode == true && printCounter == 0)){
+        if((isPrintSlowMode == false) || (isPrintSlowMode == true && printCounter == 0))
+        {
           Serial.write('S'); /* Start byte */
           
-          send2serial(MotorsSpeedSetpoint[0]);
-          send2serial(MotorsSpeedSetpoint[1]);
-          send2serial(MotorsSpeedSetpoint[2]);
+          send2serial(MotorsSpeedSetpoint[0]); /* RPM */
+          send2serial(MotorsSpeedSetpoint[1]); /* RPM */
+          send2serial(MotorsSpeedSetpoint[2]); /* RPM */
   
-          send2serial(MotorsSpeedMeasured[0]);
-          send2serial(MotorsSpeedMeasured[1]);
-          send2serial(MotorsSpeedMeasured[2]);
+          send2serial(MotorsSpeedMeasured[0]); /* RPM */
+          send2serial(MotorsSpeedMeasured[1]); /* RPM */
+          send2serial(MotorsSpeedMeasured[2]); /* RPM */
           
-          send2serial(PIDvalue[0]);
-          send2serial(PIDvalue[1]);
-          send2serial(PIDvalue[2]);
+          send2serial(PIDvalue[0]); /* Volts */
+          send2serial(PIDvalue[1]); /* Volts */
+          send2serial(PIDvalue[2]); /* Volts */
           
-          send2serial(RobotSpeedSetpoint[0]);
-          send2serial(RobotSpeedSetpoint[1]);
-          send2serial(RobotSpeedSetpoint[2]);
+          send2serial(RobotSpeedSetpoint[0]); /* m/s */
+          send2serial(RobotSpeedSetpoint[1]); /* m/s */
+          send2serial(RobotSpeedSetpoint[2]); /* rad/s */
           
-          send2serial(RobotSpeedMeasured[0]);
-          send2serial(RobotSpeedMeasured[1]);
-          send2serial(RobotSpeedMeasured[2]);
+          send2serial(RobotSpeedMeasured[0]); /* m/s */
+          send2serial(RobotSpeedMeasured[1]); /* m/s */
+          send2serial(RobotSpeedMeasured[2]); /* rad/s */
           
-          send2serial(Poseb[0]);
-          send2serial(Poseb[1]);
-          send2serial(Poseb[2]);
+          send2serial(Poseb[0]); /* m */
+          send2serial(Poseb[1]); /* m */
+          send2serial(Poseb[2]); /* rad */
   
           Serial.write('A'); /* End byte */
         }
@@ -402,19 +392,20 @@ void PRINTserial(void)
       else
       {
         
-        if((isPrintSlowMode == false) || (isPrintSlowMode == true && printCounter == 0)){
+        if((isPrintSlowMode == false) || (isPrintSlowMode == true && printCounter == 0))
+        {
           Serial.println();
           printMatrix(MotorsSpeedSetpoint, 1, 3, "Motor speed setpoints (RPM)");
           printMatrix(MotorsSpeedMeasured, 1, 3, "Motor speeds (RPM)");
           printMatrix(PIDvalue, 1, 3, "Motor control signals (V)");
           copyMatrix(RobotSpeedSetpoint, 1, 3, auxVector);
-          auxVector[2] *= RAD2RPM;
+          auxVector[2] *= RAD2RPM; /* Converting robot angular speed from rad/s to RPM for display purposes only*/
           printMatrix(auxVector, 1, 3, "Robot speed setpoints (m/s; m/s; RPM)");
           copyMatrix(RobotSpeedMeasured, 1, 3, auxVector);
-          auxVector[2] *= RAD2RPM;
+          auxVector[2] *= RAD2RPM; /* Converting robot angular speed from rad/s to RPM for display purposes only*/
           printMatrix(auxVector, 1, 3, "Robot speeds (m/s; m/s; RPM)");
           copyMatrix(Poseb, 1, 3, auxVector);
-          auxVector[2] *= RAD2DEG;
+          auxVector[2] *= RAD2DEG; /* Converting robot angular speed from rad to DEG for display purposes only*/
           printMatrix(auxVector, 1, 3, "Robot Pose (m, m, DEG)");
           Serial.println();
         }
@@ -504,11 +495,10 @@ void handleSerial(void)
            Serial.readBytes(auxbif.binary, 4);
            RobotSpeedSetpoint[i] = auxbif.floatingPoint;
          }
-         RobotSpeedSetpoint[2] *= RPM2RAD;
          /* Computing motor speeds from desired base speed */
-         transposeMatrix( invRteta, 3, 3, Rteta );
-         multiplyMatrix( Rteta, RobotSpeedSetpoint, 3, 3, 1, auxVector );
-         multiplyMatrix( MCD, auxVector, 3, 3, 1, MotorsSpeedSetpoint );
+         RobotSpeedSetpoint[2] *= RPM2RAD; /* Converting angular speed from RPM to rad/s */
+         multiplyMatrix( MCD, RobotSpeedSetpoint, 3, 3, 1, MotorsSpeedSetpoint );
+         /* Converting motor speeds from rad/s to RPM */
          scaleMatrix( MotorsSpeedSetpoint, MotorsSpeedSetpoint, 3, 1, (float)RAD2RPM );
          state = 0;
        }
@@ -522,11 +512,10 @@ void handleSerial(void)
          RobotSpeedSetpoint[0] = Serial.parseFloat();
          RobotSpeedSetpoint[1] = Serial.parseFloat();
          RobotSpeedSetpoint[2] = Serial.parseFloat();
-         RobotSpeedSetpoint[2] *= RPM2RAD;
          /* Computing motor speeds from desired base speed */
-         transposeMatrix( invRteta, 3, 3, Rteta );
-         multiplyMatrix( Rteta, RobotSpeedSetpoint, 3, 3, 1, auxVector );
-         multiplyMatrix( MCD, auxVector, 3, 3, 1, MotorsSpeedSetpoint );
+         RobotSpeedSetpoint[2] *= RPM2RAD; /* Converting angular speed from RPM to rad/s */
+         multiplyMatrix( MCD, RobotSpeedSetpoint, 3, 3, 1, MotorsSpeedSetpoint );
+         /* Converting motor speeds from rad/s to RPM */
          scaleMatrix( MotorsSpeedSetpoint, MotorsSpeedSetpoint, 3, 1, (float)RAD2RPM );
          state = 0;
        }
@@ -545,7 +534,7 @@ void printMatrix(float* A, int m, int n, String label){
   {
     for (j = 0; j < n; j++)
     {
-      Serial.print(A[n * i + j],6);
+      Serial.print(A[n * i + j],2);
       Serial.print("\t");
     }
     Serial.println();
