@@ -113,7 +113,7 @@ int float2int10q6(float number);
 /**
  * @brief Sends a 16 bits variable to serial port.
  */
-void send2serial(int number);
+void send2serial(float number);
 
 /**
  * @brief Receives and decodes data from serial port.
@@ -290,18 +290,6 @@ void loop() {
       PIDvalue[i] = PIDx[i].Compute(MotorsSpeedMeasured[i], MotorsSpeedSetpoint[i]);
       PWMvalue[i] = PIDvalue[i] * VOLTAGE2PWM;
       Motor[i].Set(PWMvalue[i]);
-      
-      if(abs(pulses) >= 20){
-        Motor[i].Set(0.0);
-        Serial.println();
-        Serial.print(Encoder[i].get_Counter());
-        Serial.print("  ");
-        Serial.print(Encoder[i].get_Pulses());
-        Serial.print("  ");
-        Serial.print(Encoder[i].get_State());
-        Serial.print("  ");
-        while(1);
-      }
     }
 
     PRINTserial();
@@ -371,9 +359,6 @@ void PRINTserial(void)
         printCounter++;
         if(printCounter >= 50){
           printCounter = 0;
-          //isPrintEnabled = false;
-          //Serial.write(0xFF);
-          //Serial.write(0xFF);
         }
       }
       else
@@ -383,42 +368,55 @@ void PRINTserial(void)
 
       if(isPrintReadableMode == false)
       {
-      
-        for(int i = 0; (i < N_MOTORS) && (printCounter) == 0; i++)
-        {
-          aux = MotorsSpeedSetpoint[i];
-          send2serial(aux);
-          aux = float2int10q6(MotorsSpeedMeasured[i]);
-          send2serial(aux);
-          aux = float2int10q6(PIDvalue[i]);
-          send2serial(aux);
-        }      
+        if((isPrintSlowMode == false) || (isPrintSlowMode == true && printCounter == 0)){
+          Serial.write('S'); /* Start byte */
+          
+          send2serial(MotorsSpeedSetpoint[0]);
+          send2serial(MotorsSpeedSetpoint[1]);
+          send2serial(MotorsSpeedSetpoint[2]);
+  
+          send2serial(MotorsSpeedMeasured[0]);
+          send2serial(MotorsSpeedMeasured[1]);
+          send2serial(MotorsSpeedMeasured[2]);
+          
+          send2serial(PIDvalue[0]);
+          send2serial(PIDvalue[1]);
+          send2serial(PIDvalue[2]);
+          
+          send2serial(RobotSpeedSetpoint[0]);
+          send2serial(RobotSpeedSetpoint[1]);
+          send2serial(RobotSpeedSetpoint[2]);
+          
+          send2serial(RobotSpeedMeasured[0]);
+          send2serial(RobotSpeedMeasured[1]);
+          send2serial(RobotSpeedMeasured[2]);
+          
+          send2serial(Poseb[0]);
+          send2serial(Poseb[1]);
+          send2serial(Poseb[2]);
+  
+          Serial.write('A'); /* End byte */
+        }
 
       }
       else
       {
-      
-        for(int i = 0; (i < N_MOTORS) && (printCounter == 0); i++)
-        {
-          Serial.print(MotorsSpeedSetpoint[i]);
-          Serial.print("  ");
-          Serial.print(MotorsSpeedMeasured[i]);
-          Serial.print("  ");
-          Serial.print(PIDvalue[i]);
-          Serial.print("  ");
-          if(i >= N_MOTORS - 1){
-            if(isPrintSlowMode == true){
-              Serial.println();
-              printMatrix(MotorsSpeedMeasured, 1, 3, "Motor Speed (RPM)");
-              copyMatrix(RobotSpeedMeasured, 1, 3, auxVector);
-              auxVector[2] *= RAD2RPM;
-              printMatrix(auxVector, 1, 3, "Robot Speed (m/s; m/s; RPM)");
-              copyMatrix(Poseb, 1, 3, auxVector);
-              auxVector[2] *= RAD2DEG;
-              printMatrix(auxVector, 1, 3, "Robot Pose (m, m, DEG)");
-            }
-            Serial.println();
-          }
+        
+        if((isPrintSlowMode == false) || (isPrintSlowMode == true && printCounter == 0)){
+          Serial.println();
+          printMatrix(MotorsSpeedSetpoint, 1, 3, "Motor speed setpoints (RPM)");
+          printMatrix(MotorsSpeedMeasured, 1, 3, "Motor speeds (RPM)");
+          printMatrix(PIDvalue, 1, 3, "Motor control signals (V)");
+          copyMatrix(RobotSpeedSetpoint, 1, 3, auxVector);
+          auxVector[2] *= RAD2RPM;
+          printMatrix(auxVector, 1, 3, "Robot speed setpoints (m/s; m/s; RPM)");
+          copyMatrix(RobotSpeedMeasured, 1, 3, auxVector);
+          auxVector[2] *= RAD2RPM;
+          printMatrix(auxVector, 1, 3, "Robot speeds (m/s; m/s; RPM)");
+          copyMatrix(Poseb, 1, 3, auxVector);
+          auxVector[2] *= RAD2DEG;
+          printMatrix(auxVector, 1, 3, "Robot Pose (m, m, DEG)");
+          Serial.println();
         }
 
       }
@@ -432,13 +430,29 @@ int float2int10q6(float number){
   return( (int)aux);
 }
 
-void send2serial(int number){
-  Serial.write((unsigned char)(number)&0xFF);
-  Serial.write((unsigned char)(number>>8)&0xFF);
+void send2serial(float number){
+  /* Used to convert binary to float on unreadable transmissions */
+  typedef union {
+    float floatingPoint;
+    byte binary[4];
+  }binaryFloat;
+
+  binaryFloat auxbif;
+  auxbif.floatingPoint = number;
+  Serial.write(auxbif.binary, 4);
 }
+
+
 
 void handleSerial(void) 
 {
+  /* Used to convert binary to float on unreadable receptions */
+  typedef union {
+    float floatingPoint;
+    byte binary[4];
+  }binaryFloat;
+  
+  binaryFloat auxbif;
    static char state = 0;
    char incomingCharacter;
    int aux;
@@ -479,30 +493,37 @@ void handleSerial(void)
      }
    }else if( state == 1 )
    {
+     /* Unreadable reception */
      if(isPrintReadableMode == false)
      {
-       if(Serial.available() >= 2 * N_MOTORS) 
+       /* Expecting exactly 3 floating point variables (12 bytes) */
+       if(Serial.available() >= 12) 
        {
-          for(int i = 0; i < N_MOTORS; i++)
-          {
-            aux = Serial.read();   
-            setpoint[i] = aux;
-            aux = Serial.read();
-            setpoint[i] |= aux << 8;
-            MotorsSpeedSetpoint[i] = (float)setpoint[i];
-          }
-          state = 0;
+         for(int i = 0; i < 3; i++)
+         {
+           Serial.readBytes(auxbif.binary, 4);
+           RobotSpeedSetpoint[i] = auxbif.floatingPoint;
+         }
+         RobotSpeedSetpoint[2] *= RPM2RAD;
+         /* Computing motor speeds from desired base speed */
+         transposeMatrix( invRteta, 3, 3, Rteta );
+         multiplyMatrix( Rteta, RobotSpeedSetpoint, 3, 3, 1, auxVector );
+         multiplyMatrix( MCD, auxVector, 3, 3, 1, MotorsSpeedSetpoint );
+         scaleMatrix( MotorsSpeedSetpoint, MotorsSpeedSetpoint, 3, 1, (float)RAD2RPM );
+         state = 0;
        }
      }
+     /* Readable reception */
      else
      {
+       /* Expecting at least 0.0;0.0;0.0; (12 chars) */
        if(Serial.available() >= 12) 
        {
          RobotSpeedSetpoint[0] = Serial.parseFloat();
          RobotSpeedSetpoint[1] = Serial.parseFloat();
          RobotSpeedSetpoint[2] = Serial.parseFloat();
          RobotSpeedSetpoint[2] *= RPM2RAD;
-         //Computing motor speeds from desired base speed
+         /* Computing motor speeds from desired base speed */
          transposeMatrix( invRteta, 3, 3, Rteta );
          multiplyMatrix( Rteta, RobotSpeedSetpoint, 3, 3, 1, auxVector );
          multiplyMatrix( MCD, auxVector, 3, 3, 1, MotorsSpeedSetpoint );
