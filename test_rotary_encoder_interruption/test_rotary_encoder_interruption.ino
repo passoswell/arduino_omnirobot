@@ -92,7 +92,7 @@ int ENCODER_Read(void){
   currentMillis = millis();
   if (currentMillis - previousMillis >= EncoderInterval) {
     previousMillis = currentMillis;
-    newPos = encoder.getPulses();
+    newPos = encoder.readPulses();
     Serial.println(newPos);
   }
   return(newPos);

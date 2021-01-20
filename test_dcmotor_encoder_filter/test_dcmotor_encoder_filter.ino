@@ -150,11 +150,11 @@ void loop() {
 
     
     motor1.Set(100);//turn clockwise with PWM = 100
-    pulses = encoder2.getPulses();
+    pulses = encoder2.readPulses();
     //Serial.print(pulses);
     //Serial.print(" ");
     motor2.Set(0);
-    pulses = encoder3.getPulses();
+    pulses = encoder3.readPulses();
     //Serial.println(pulses);
     motor3.Set(0);
   }//if
