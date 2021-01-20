@@ -218,6 +218,8 @@ void setup() {
   printMatrix(MCI, 3, 3, "MCI");
   while(1);
   */
+  costeta = 1.0;
+  sinteta = 0.0;
 /* Rteta= [cos(teta) sin(teta) 0;-sin(teta) cos(teta) 0;0 0 1]; */
   Rteta[0] = costeta;
   Rteta[1] = sinteta;
@@ -229,8 +231,7 @@ void setup() {
   Rteta[7] = 0.0;
   Rteta[8] = 1.0;
 //invRteta = Rteta'
-  transposeMatrix( Rteta, 3, 3, invRteta );
-  
+  transposeMatrix( Rteta, 3, 3, invRteta );  
 
   /*
    * The code below configures interruption on ATMEGA328p gpio pins,
@@ -257,17 +258,19 @@ void setup() {
  *        board and / or another pins.
  */
 ISR(PCINT1_vect) {
+  PCICR &= ~(1 << PCIE1);
   Encoder[0].tick(); // just call tick() to check the state.
   Encoder[1].tick();
   Encoder[2].tick();
+  PCICR |= (1 << PCIE1);
 }
 
 void loop() {
 
   static unsigned long previousMillis = 0, previousMillisBase = 0, currentMillis;
-  static long pulses;
+  long pulses;
   long aux32;
-  static int64_t tpulses[3] = {0,0,0};
+  static int64_t tpulses[N_MOTORS];
   float dt = 0.0, normVb, normVb_r, auxf;
 
   currentMillis = millis();
@@ -280,13 +283,25 @@ void loop() {
     {
       /* Motor control */
       pulses = Encoder[i].readPulses();
-      tpulses[i] += pulses;
-      TrackingLoopFilterInt_Compute(&EncoderFilter[i], tpulses[i]);
-      //MotorsSpeedMeasured[i] = (float)EncoderFilter[i].DiffOutput * PULSE2RAD * RAD2RPM;
+//      tpulses[i] += pulses;
+//      TrackingLoopFilterInt_Compute(&EncoderFilter[i], tpulses[i]);
+//      MotorsSpeedMeasured[i] = (float)EncoderFilter[i].DiffOutput * PULSE2RAD * RAD2RPM;
       MotorsSpeedMeasured[i] = (float)pulses * PULSE2RAD * RAD2RPM / dt;
       PIDvalue[i] = PIDx[i].Compute(MotorsSpeedMeasured[i], MotorsSpeedSetpoint[i]);
       PWMvalue[i] = PIDvalue[i] * VOLTAGE2PWM;
       Motor[i].Set(PWMvalue[i]);
+      
+      if(abs(pulses) >= 20){
+        Motor[i].Set(0.0);
+        Serial.println();
+        Serial.print(Encoder[i].get_Counter());
+        Serial.print("  ");
+        Serial.print(Encoder[i].get_Pulses());
+        Serial.print("  ");
+        Serial.print(Encoder[i].get_State());
+        Serial.print("  ");
+        while(1);
+      }
     }
 
     PRINTserial();
@@ -294,7 +309,8 @@ void loop() {
   }//if
 
   currentMillis = millis();
-  if (currentMillis - previousMillisBase >= PoseInterval) {
+  if (currentMillis - previousMillisBase >= PoseInterval)
+  {
     previousMillisBase = currentMillis;
 
     /* 
@@ -303,24 +319,36 @@ void loop() {
      * invRteta = Rteta'
      * teta = Poseb[2];
      */
-    costeta = cosf(Poseb[2]);
-    sinteta = sinf(Poseb[2]);
-    invRteta[0] = costeta;
-    invRteta[1] = -sinteta;
-    invRteta[3] = +sinteta;
-    invRteta[4] = costeta;
-    scaleMatrix( MotorsSpeedMeasured, RobotSpeedMeasured, 3, 1, (float)RPM2RAD );
-    multiplyMatrix( MCI, RobotSpeedMeasured, 3, 3, 1, auxVector );
-    multiplyMatrix( invRteta, auxVector, 3, 3, 1, RobotSpeedMeasured );    
-    scaleMatrix( RobotSpeedMeasured, auxVector, 3, 1, PoseInterval*0.001 );
-    addMatrix( Poseb, auxVector, 3, 1, Poseb );
+//    costeta = cosf(Poseb[2]);
+//    sinteta = sinf(Poseb[2]);
+//    invRteta[0] = costeta;
+//    invRteta[1] = -sinteta;
+//    invRteta[3] = +sinteta;
+//    invRteta[4] = costeta;
+//    scaleMatrix( MotorsSpeedMeasured, RobotSpeedMeasured, N_MOTORS, 1, (float)RPM2RAD );
+//    multiplyMatrix( MCI, RobotSpeedMeasured, 3, N_MOTORS, 1, auxVector );
+//    multiplyMatrix( invRteta, auxVector, 3, 3, 1, RobotSpeedMeasured );    
+//    scaleMatrix( RobotSpeedMeasured, auxVector, 3, 1, PoseInterval*0.001 );
+//    addMatrix( Poseb, auxVector, 3, 1, Poseb );
+//
+//    /* Limiting orientation angle between 0 and 2 * PI */
+//    auxf  = Poseb[2] * 0.5 * M_1_PI;
+//    aux32 = auxf;
+//    auxf -= aux32;
+//    auxf *= 2 * M_PI;
+//    Poseb[2] = auxf;
 
-    /* Limiting orientation angle between 0 and 2 * PI */
-    auxf  = Poseb[2] * 0.5 * M_1_PI;
-    aux32 = auxf;
-    auxf -= aux32;
-    auxf *= 2 * M_PI;
-    Poseb[2] = auxf;
+//    RobotSpeedSetpoint[0] = 0.1;
+//    RobotSpeedSetpoint[1] = 0.0;
+//    RobotSpeedSetpoint[2] = 0.0;
+//    RobotSpeedSetpoint[2] *= RPM2RAD;
+//    //Computing motor speeds from desired base speed
+//    transposeMatrix( invRteta, 3, 3, Rteta );
+//    multiplyMatrix( Rteta, RobotSpeedSetpoint, 3, 3, 1, auxVector );
+//    multiplyMatrix( MCD, auxVector, 3, 3, 1, MotorsSpeedSetpoint );
+//    scaleMatrix( MotorsSpeedSetpoint, MotorsSpeedSetpoint, 3, 1, (float)RAD2RPM );
+
+ 
     
   }
 
@@ -479,6 +507,7 @@ void handleSerial(void)
          multiplyMatrix( Rteta, RobotSpeedSetpoint, 3, 3, 1, auxVector );
          multiplyMatrix( MCD, auxVector, 3, 3, 1, MotorsSpeedSetpoint );
          scaleMatrix( MotorsSpeedSetpoint, MotorsSpeedSetpoint, 3, 1, (float)RAD2RPM );
+         state = 0;
        }
      }
    }else{
